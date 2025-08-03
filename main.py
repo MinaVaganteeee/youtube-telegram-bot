@@ -1,55 +1,52 @@
-import time
 import feedparser
+import time
 import requests
 
-channels = {
-    "Artie 5ive":       "UC-xCxVgJcaeTk__KaFpPwwQ",
-    "Future":           "UCSDvKdIQOwTfcyOimSi9oYA",
-    "Metro Boomin":     "UCKC11MOR51CLg4JpYj8jb4g",
-    "Lil Baby":         "UCVS88tG_NYgxF6Udnx2815Q",
-    "NBA YoungBoy":     "UClW4jraMKz6Qj69lJf-tODA",
-    "Don Toliver":      "UCgT01FILdWB9BsXBXKjpQ7A",
-    "Travis Scott":     "UCtxdfwb9wfkoGocVUAJ-Bmg",
-    "Rondo Da Sosa":    "UCGW91-ExDG5HolRaK59L6ng",
-    "Drake":            "UCByOQJjav0CUDwxCk-jVNRQ",
-    "LilCr":            "UCBOs_tA4noBqgzif_kmYokQ",
-    "Nabi":             "UCraW73SNGkgTfSqS3gVlEUQ",
-    "Lil Tecca":        "UCjWRB340EE-E8gSDmXhB0wA"
+# === CONFIGURAZIONE ===
+TELEGRAM_BOT_TOKEN = "8404241523:AAF3szBqR9dgwaHdIFvaJpsRbM06CVlZmOw"
+TELEGRAM_CHAT_ID = "5389149332"
+
+YOUTUBE_CHANNELS = {
+    "Rondo Da Sosa": "UCGW91-ExDG5HolRaK59L6ng",
+    "Drake": "UCByOQJjav0CUDwxCk-jVNRQ",
+    "LilCr": "UCBOs_tA4noBqgzif_kmYokQ",
+    "Nabi": "UCraW73SNGkgTfSqS3gVlEUQ",
+    "Lil Tecca": "UCjWRB340EE-E8gSDmXhB0wA"
 }
 
-TELEGRAM_TOKEN = "8404241523:AAF3szBqR9dgwaHdIFvaJpsRbM06CVlZmOw"
-CHAT_ID = "5389149332"
+CHECK_INTERVAL = 60 * 5  # ogni 5 minuti
 
-latest_video_ids = {}
+# === FUNZIONI ===
+def get_latest_video(channel_id):
+    feed_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+    feed = feedparser.parse(feed_url)
+    if feed.entries:
+        return {
+            "title": feed.entries[0].title,
+            "link": feed.entries[0].link,
+            "published": feed.entries[0].published
+        }
+    return None
 
 def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": message}
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
     requests.post(url, data=data)
 
-def check_new_videos():
-    for artist, channel_id in channels.items():
-        feed_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-        feed = feedparser.parse(feed_url)
-        if not feed.entries:
-            continue
+# === LOOP PRINCIPALE ===
+last_videos = {}
 
-        latest_video = feed.entries[0]
-        video_id = latest_video.yt_videoid
-        video_title = latest_video.title
-        video_url = latest_video.link
-
-        if channel_id not in latest_video_ids or latest_video_ids[channel_id] != video_id:
-            latest_video_ids[channel_id] = video_id
-send_telegram_message(f"📢 Nuovo video da {artist}: {latest_title}\n{latest_link}")
-message = f"🎬 {video_title}"
-🔗 {video_url}")
-
-if __name__ == "__main__":
-    send_telegram_message("🤖 Bot avviato! Inizio monitoraggio canali YouTube...")
-    while True:
-        try:
-            check_new_videos()
-        except Exception as e:
-            send_telegram_message(f"❌ Errore nel bot: {str(e)}")
-        time.sleep(600)
+while True:
+    for artist, channel_id in YOUTUBE_CHANNELS.items():
+        latest_video = get_latest_video(channel_id)
+        if latest_video:
+            video_id = latest_video["link"].split("=")[-1]
+            if artist not in last_videos or last_videos[artist] != video_id:
+                last_videos[artist] = video_id
+                message = f"📢 Nuovo video da <b>{artist}</b>:\n🎬 {latest_video['title']}\n🔗 {latest_video['link']}"
+                send_telegram_message(message)
+    time.sleep(CHECK_INTERVAL)
