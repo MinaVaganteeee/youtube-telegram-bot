@@ -40,12 +40,20 @@ def send_telegram_message(message):
 # === LOOP PRINCIPALE ===
 last_videos = {}
 
+# Prima inizializzazione: salva gli ultimi video già pubblicati
+for artist, channel_id in YOUTUBE_CHANNELS.items():
+    latest_video = get_latest_video(channel_id)
+    if latest_video:
+        video_id = latest_video["link"].split("=")[-1]
+        last_videos[artist] = video_id
+
+# Inizia il ciclo normale dopo l'inizializzazione
 while True:
     for artist, channel_id in YOUTUBE_CHANNELS.items():
         latest_video = get_latest_video(channel_id)
         if latest_video:
             video_id = latest_video["link"].split("=")[-1]
-            if artist not in last_videos or last_videos[artist] != video_id:
+            if last_videos.get(artist) != video_id:
                 last_videos[artist] = video_id
                 message = f"📢 Nuovo video da <b>{artist}</b>:\n🎬 {latest_video['title']}\n🔗 {latest_video['link']}"
                 send_telegram_message(message)
