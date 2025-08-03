@@ -42,7 +42,7 @@ def check_new_videos():
         if channel_id not in latest_video_ids or latest_video_ids[channel_id] != video_id:
             latest_video_ids[channel_id] = video_id
 send_telegram_message(f"📢 Nuovo video da {artist}: {latest_title}\n{latest_link}")
-🎬 {video_title}
+message = f"🎬 {video_title}"
 🔗 {video_url}")
 
 if __name__ == "__main__":
